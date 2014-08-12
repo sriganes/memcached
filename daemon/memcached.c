@@ -1543,6 +1543,11 @@ static void complete_update_bin(conn *c) {
                 }
             }
         }
+
+        settings.extensions.logger->log(EXTENSION_LOG_WARNING, c,
+                                        "SRIRAM DEBUG: memcached: "
+                                        "complete_update_bin");
+
         ret = settings.engine.v1->store(settings.engine.v0, c,
                                         it, &c->cas, c->store_op,
                                         c->binary_header.request.vbucket);
@@ -5539,7 +5544,7 @@ static void process_bin_update(conn *c) {
 
     vlen = c->binary_header.request.bodylen - (nkey + c->binary_header.request.extlen);
 
-    if (settings.verbose > 1) {
+    if (1) {
         size_t nw;
         char buffer[1024];
         const char *prefix;
@@ -5596,6 +5601,9 @@ static void process_bin_update(conn *c) {
             c->store_op = OPERATION_ADD;
             break;
         case PROTOCOL_BINARY_CMD_SET:
+            settings.extensions.logger->log(EXTENSION_LOG_WARNING, c,
+            "SRIRAM DEBUG: memcached: process_bin_update\n");
+
             if (c->binary_header.request.cas != 0) {
                 c->store_op = OPERATION_CAS;
             } else {
