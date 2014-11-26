@@ -514,11 +514,22 @@ extern "C"
     typedef protocol_binary_request_set protocol_binary_request_add;
     typedef protocol_binary_request_set protocol_binary_request_replace;
 
+    typedef union {
+        struct {
+            protocol_binary_request_header header;
+            struct {
+                uint64_t vb_uuid;
+                uint64_t seqno;
+            } body;
+        } message;
+        uint8_t bytes[sizeof(protocol_binary_response_header) + 16];
+    } protocol_binary_response_update;
+
     /**
      * Definition of the packet returned by set, add and replace
      * See section 4
      */
-    typedef protocol_binary_response_no_extras protocol_binary_response_set;
+    //typedef protocol_binary_response_no_extras protocol_binary_response_set;
     typedef protocol_binary_response_no_extras protocol_binary_response_add;
     typedef protocol_binary_response_no_extras protocol_binary_response_replace;
 

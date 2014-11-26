@@ -84,7 +84,7 @@ static ENGINE_ERROR_CODE item_delete(ENGINE_HANDLE* handle,
                                                 const void* cookie,
                                                 const void* key,
                                                 const size_t nkey,
-                                                uint64_t* cas,
+                                                store_info* store_info,
                                                 uint16_t vbucket)
 {
     return ENGINE_NO_BUCKET;
@@ -119,7 +119,7 @@ static ENGINE_ERROR_CODE get_stats(ENGINE_HANDLE* handle,
 static ENGINE_ERROR_CODE store(ENGINE_HANDLE* handle,
                                           const void *cookie,
                                           item* item,
-                                          uint64_t *cas,
+                                          store_info *store_info,
                                           ENGINE_STORE_OPERATION operation,
                                           uint16_t vbucket)
 {
@@ -135,7 +135,7 @@ static ENGINE_ERROR_CODE arithmetic(ENGINE_HANDLE* handle,
                                                const uint64_t delta,
                                                const uint64_t initial,
                                                const rel_time_t exptime,
-                                               uint64_t *cas,
+                                               store_info *store_info,
                                                uint8_t datatype,
                                                uint64_t *result,
                                                uint16_t vbucket)

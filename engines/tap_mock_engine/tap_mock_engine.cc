@@ -33,7 +33,7 @@ extern "C" {
                                          const void* cookie,
                                          const void* key,
                                          const size_t nkey,
-                                         uint64_t* cas,
+                                         store_info* store_info,
                                          uint16_t vbucket);
 
     static void item_release(ENGINE_HANDLE* handle, const void *cookie,
@@ -53,7 +53,7 @@ extern "C" {
     static ENGINE_ERROR_CODE store(ENGINE_HANDLE* handle,
                                    const void *cookie,
                                    item* item,
-                                   uint64_t *cas,
+                                   store_info *store_info,
                                    ENGINE_STORE_OPERATION operation,
                                    uint16_t vbucket);
     static ENGINE_ERROR_CODE flush(ENGINE_HANDLE* handle,
@@ -697,7 +697,7 @@ public:
 
     ENGINE_ERROR_CODE store(const void *cookie,
                             item* itm,
-                            uint64_t *cas,
+                            store_info *store_info,
                             ENGINE_STORE_OPERATION operation,
                             uint16_t vbucket)
     {
@@ -706,7 +706,7 @@ public:
         }
 
         Item *it = reinterpret_cast<Item*>(itm);
-        if (kvstore.store(it, operation, cas)) {
+        if (kvstore.store(it, operation, &store_info->cas)) {
             return ENGINE_SUCCESS;
         }
 
@@ -922,10 +922,10 @@ static ENGINE_ERROR_CODE item_delete(ENGINE_HANDLE* handle,
                                      const void* cookie,
                                      const void* key,
                                      const size_t nkey,
-                                     uint64_t* cas,
+                                     store_info* store_info,
                                      uint16_t vbucket)
 {
-    return getHandle(handle).itemDelete(cookie, key, nkey, *cas, vbucket);
+    return getHandle(handle).itemDelete(cookie, key, nkey, store_info->cas, vbucket);
 }
 
 static void item_release(ENGINE_HANDLE* handle, const void *cookie, item* it)
@@ -960,11 +960,11 @@ static void reset_stats(ENGINE_HANDLE* handle, const void *cookie)
 static ENGINE_ERROR_CODE store(ENGINE_HANDLE* handle,
                                const void *cookie,
                                item* it,
-                               uint64_t *cas,
+                               store_info *store_info,
                                ENGINE_STORE_OPERATION operation,
                                uint16_t vbucket)
 {
-    return getHandle(handle).store(cookie, it, cas, operation, vbucket);
+    return getHandle(handle).store(cookie, it, store_info, operation, vbucket);
 }
 
 static ENGINE_ERROR_CODE flush(ENGINE_HANDLE* handle,

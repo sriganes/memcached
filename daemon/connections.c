@@ -201,6 +201,7 @@ conn *conn_new(const SOCKET sfd, in_port_t parent_port,
     c->write_and_free = 0;
     c->item = 0;
     c->supports_datatype = false;
+    c->supports_durability = false;
     c->noreply = false;
 
     event_set(&c->event, sfd, event_flags, event_handler, (void *)c);
@@ -822,7 +823,7 @@ static cJSON* get_connection_stats(const conn *c) {
         json_add_uintptr_to_object(obj, "engine_storage",
                                    (uintptr_t)c->engine_storage);
         /* @todo we should decode the binary header */
-        json_add_uintptr_to_object(obj, "cas", c->cas);
+        json_add_uintptr_to_object(obj, "cas", c->store_info.cas);
         cJSON_AddNumberToObject(obj, "cmd", c->cmd);
         json_add_uintptr_to_object(obj, "opaque", c->opaque);
         cJSON_AddNumberToObject(obj, "keylen", c->keylen);

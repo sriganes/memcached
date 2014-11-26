@@ -184,6 +184,12 @@ extern "C" {
         feature_info features[1];
     } engine_info;
 
+    typedef struct {
+        uint64_t cas;
+        uint64_t uuid;
+        uint64_t seqno;
+    } store_info;
+
     /**
      * Definition of the first version of the engine interface
      */
@@ -263,7 +269,7 @@ extern "C" {
                                     const void* cookie,
                                     const void* key,
                                     const size_t nkey,
-                                    uint64_t* cas,
+                                    store_info* store_info,
                                     uint16_t vbucket);
 
         /**
@@ -312,7 +318,7 @@ extern "C" {
         ENGINE_ERROR_CODE (*store)(ENGINE_HANDLE* handle,
                                    const void *cookie,
                                    item* item,
-                                   uint64_t *cas,
+                                   store_info *store_info,
                                    ENGINE_STORE_OPERATION operation,
                                    uint16_t vbucket);
 
@@ -343,7 +349,7 @@ extern "C" {
                                         const uint64_t delta,
                                         const uint64_t initial,
                                         const rel_time_t exptime,
-                                        uint64_t *cas,
+                                        store_info *store_info,
                                         uint8_t datatype,
                                         uint64_t *result,
                                         uint16_t vbucket);

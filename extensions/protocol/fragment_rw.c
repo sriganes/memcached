@@ -55,6 +55,7 @@ static ENGINE_ERROR_CODE create_object(ENGINE_HANDLE_V1 *v1,
     ENGINE_ERROR_CODE r;
     item *item = NULL;
     item_info i2;
+    store_info sinfo;
     uint8_t *dest;
 
     r = v1->allocate(v, cookie, &item, org->key, org->nkey, org->nbytes,
@@ -75,7 +76,8 @@ static ENGINE_ERROR_CODE create_object(ENGINE_HANDLE_V1 *v1,
     memcpy(dest + offset, data, len);
 
     v1->item_set_cas(v, cookie, item, org->cas);
-    r = v1->store(v, cookie, item, cas, OPERATION_CAS, vbucket);
+    r = v1->store(v, cookie, item, &sinfo, OPERATION_CAS, vbucket);
+    *cas = sinfo.cas;
     v1->release(v, cookie, item);
     return r;
 }

@@ -1573,6 +1573,7 @@ static enum test_return test_set_impl(const char *key, uint8_t cmd) {
         char bytes[1024];
     } send, receive;
     uint64_t value = 0xdeadbeefdeadcafe;
+
     size_t len = storage_command(send.bytes, sizeof(send.bytes), cmd,
                                  key, strlen(key), &value, sizeof(value),
                                  0, 0);

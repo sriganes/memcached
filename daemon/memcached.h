@@ -395,6 +395,7 @@ struct conn {
 
     uint8_t refcount; /* number of references to the object */
     bool   supports_datatype;
+    bool   supports_durability;
 
     struct {
         char *buffer;
@@ -408,7 +409,7 @@ struct conn {
     /* Binary protocol stuff */
     /* This is where the binary header goes */
     protocol_binary_request_header binary_header;
-    uint64_t cas; /* the cas to return */
+    store_info store_info;
     short cmd; /* current command being processed */
     int opaque;
     int keylen;

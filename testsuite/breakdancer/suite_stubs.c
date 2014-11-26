@@ -32,7 +32,7 @@ void delay(int amt) {
 static void storeItem(ENGINE_HANDLE *h, ENGINE_HANDLE_V1 *h1,
                       ENGINE_STORE_OPERATION op) {
     item *it = NULL;
-    uint64_t cas = 0;
+    store_info store_info;
     char *value = "0";
     const int flags = 0;
     const void *cookie = NULL;
@@ -61,7 +61,7 @@ static void storeItem(ENGINE_HANDLE *h, ENGINE_HANDLE_V1 *h1,
     memcpy(info.value[0].iov_base, value, vlen);
     h1->item_set_cas(h, cookie, it, 0);
 
-    rv = h1->store(h, cookie, it, &cas, op, 0);
+    rv = h1->store(h, cookie, it, &store_info, op, 0);
 
     hasError = rv != ENGINE_SUCCESS;
 }
@@ -75,18 +75,18 @@ void append(ENGINE_HANDLE *h, ENGINE_HANDLE_V1 *h1) {
 }
 
 void decr(ENGINE_HANDLE *h, ENGINE_HANDLE_V1 *h1) {
-    uint64_t cas;
     uint64_t result;
+    store_info store_info;
     hasError = h1->arithmetic(h, NULL, key, (int)strlen(key), false, false, 1, 0, expiry,
-                              &cas, PROTOCOL_BINARY_RAW_BYTES, &result,
+                              &store_info, PROTOCOL_BINARY_RAW_BYTES, &result,
                               0) != ENGINE_SUCCESS;
 }
 
 void decrWithDefault(ENGINE_HANDLE *h, ENGINE_HANDLE_V1 *h1) {
-    uint64_t cas;
     uint64_t result;
+    store_info store_info;
     hasError = h1->arithmetic(h, NULL, key, (int)strlen(key), false, true, 1, 0, expiry,
-                              &cas, PROTOCOL_BINARY_RAW_BYTES, &result,
+                              &store_info, PROTOCOL_BINARY_RAW_BYTES, &result,
                               0) != ENGINE_SUCCESS;
 }
 
@@ -99,8 +99,8 @@ void flush(ENGINE_HANDLE *h, ENGINE_HANDLE_V1 *h1) {
 }
 
 void del(ENGINE_HANDLE *h, ENGINE_HANDLE_V1 *h1) {
-	uint64_t cas = 0;
-    hasError = h1->remove(h, NULL, key, strlen(key), &cas, 0) != ENGINE_SUCCESS;
+    store_info store_info;
+    hasError = h1->remove(h, NULL, key, strlen(key), &store_info, 0) != ENGINE_SUCCESS;
 }
 
 void set(ENGINE_HANDLE *h, ENGINE_HANDLE_V1 *h1) {
@@ -108,18 +108,18 @@ void set(ENGINE_HANDLE *h, ENGINE_HANDLE_V1 *h1) {
 }
 
 void incr(ENGINE_HANDLE *h, ENGINE_HANDLE_V1 *h1) {
-    uint64_t cas;
     uint64_t result;
+    store_info store_info;
     hasError = h1->arithmetic(h, NULL, key, (int)strlen(key), true, false, 1, 0, expiry,
-                              &cas, PROTOCOL_BINARY_RAW_BYTES, &result,
+                              &store_info, PROTOCOL_BINARY_RAW_BYTES, &result,
                               0) != ENGINE_SUCCESS;
 }
 
 void incrWithDefault(ENGINE_HANDLE *h, ENGINE_HANDLE_V1 *h1) {
-    uint64_t cas;
     uint64_t result;
+    store_info store_info;
     hasError = h1->arithmetic(h, NULL, key, (int)strlen(key), true, true, 1, 0, expiry,
-                              &cas, PROTOCOL_BINARY_RAW_BYTES, &result,
+                              &store_info, PROTOCOL_BINARY_RAW_BYTES, &result,
                               0) != ENGINE_SUCCESS;
 }
 

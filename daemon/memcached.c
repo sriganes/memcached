@@ -703,7 +703,7 @@ static int add_bin_header(conn *c,
 
     header->response.bodylen = htonl(body_len);
     header->response.opaque = c->opaque;
-    header->response.cas = htonll(c->cas);
+    header->response.cas = htonll(c->store_info.cas);
 
     if (settings.verbose > 1) {
         char buffer[1024];
@@ -867,6 +867,7 @@ static void complete_update_bin(conn *c) {
     ENGINE_ERROR_CODE ret;
     item *it;
     item_info_holder info;
+    update_info uinfo;
     bool disconnect = false;
 
     cb_assert(c != NULL);
@@ -911,7 +912,7 @@ static void complete_update_bin(conn *c) {
             break;
         case AUTH_OK:
             ret = settings.engine.v1->store(settings.engine.v0, c,
-                                            it, &c->cas, c->store_op,
+                                            it, &c->store_info, c->store_op,
                                             c->binary_header.request.vbucket);
             break;
         case AUTH_STALE:
@@ -930,23 +931,28 @@ static void complete_update_bin(conn *c) {
     switch (c->cmd) {
     case OPERATION_ADD:
         MEMCACHED_COMMAND_ADD(c->sfd, info.info.key, info.info.nkey,
-                              (ret == ENGINE_SUCCESS) ? info.info.nbytes : -1, c->cas);
+                              (ret == ENGINE_SUCCESS) ? info.info.nbytes : -1,
+                               c->store_info.cas);
         break;
     case OPERATION_REPLACE:
         MEMCACHED_COMMAND_REPLACE(c->sfd, info.info.key, info.info.nkey,
-                                  (ret == ENGINE_SUCCESS) ? info.info.nbytes : -1, c->cas);
+                                  (ret == ENGINE_SUCCESS) ? info.info.nbytes : -1,
+                                   c->store_info.cas);
         break;
     case OPERATION_APPEND:
         MEMCACHED_COMMAND_APPEND(c->sfd, info.info.key, info.info.nkey,
-                                 (ret == ENGINE_SUCCESS) ? info.info.nbytes : -1, c->cas);
+                                 (ret == ENGINE_SUCCESS) ? info.info.nbytes : -1,
+                                  c->store_info.cas);
         break;
     case OPERATION_PREPEND:
         MEMCACHED_COMMAND_PREPEND(c->sfd, info.info.key, info.info.nkey,
-                                  (ret == ENGINE_SUCCESS) ? info.info.nbytes : -1, c->cas);
+                                  (ret == ENGINE_SUCCESS) ? info.info.nbytes : -1,
+                                   c->store_info.cas);
         break;
     case OPERATION_SET:
         MEMCACHED_COMMAND_SET(c->sfd, info.info.key, info.info.nkey,
-                              (ret == ENGINE_SUCCESS) ? info.info.nbytes : -1, c->cas);
+                              (ret == ENGINE_SUCCESS) ? info.info.nbytes : -1,
+                               c->store_info.cas);
         break;
     }
 #endif
@@ -954,7 +960,13 @@ static void complete_update_bin(conn *c) {
     switch (ret) {
     case ENGINE_SUCCESS:
         /* Stored */
-        write_bin_response(c, NULL, 0, 0, 0);
+        if (c->supports_durability) { 
+            uinfo.vb_uuid = htonll(c->store_info.uuid);
+            uinfo.seqno   = htonll(c->store_info.seqno);
+            write_bin_response(c, &uinfo, sizeof(uinfo), 0, sizeof(uinfo));
+        } else {
+            write_bin_response(c, NULL, 0, 0 ,0);
+        }
         break;
     case ENGINE_EACCESS:
         write_bin_packet(c, PROTOCOL_BINARY_RESPONSE_EACCESS, 0);
@@ -4593,7 +4605,7 @@ static void arithmetic_executor(conn *c, void *packet)
                                              c, key, (int)nkey, incr,
                                              req->message.body.expiration != 0xffffffff,
                                              delta, initial, expiration,
-                                             &c->cas,
+                                             &c->store_info,
                                              c->binary_header.request.datatype,
                                              &rsp->message.body.value,
                                              c->binary_header.request.vbucket);
@@ -4602,8 +4614,20 @@ static void arithmetic_executor(conn *c, void *packet)
     switch (ret) {
     case ENGINE_SUCCESS:
         rsp->message.body.value = htonll(rsp->message.body.value);
-        write_bin_response(c, &rsp->message.body, 0, 0,
-                           sizeof (rsp->message.body.value));
+
+        if (c->supports_durability) {
+            uint8_t data[24];
+            c->store_info.uuid = htonll(c->store_info.uuid);
+            c->store_info.seqno = htonll(c->store_info.seqno);
+            memcpy(data, &c->store_info.uuid, 8);
+            memcpy(data + 8,  &c->store_info.seqno, 8);
+            memcpy(data + 16, &rsp->message.body.value, 8);
+            write_bin_response(c, (const void *)data, 16, 0,
+                               sizeof (data));
+        } else {
+            write_bin_response(c, &rsp->message.body, 0, 0,
+                               sizeof (rsp->message.body.value));
+        }
         if (incr) {
             STATS_INCR(c, incr_hits, key, nkey);
         } else {
@@ -5340,7 +5364,11 @@ static void process_bin_delete(conn *c) {
     size_t nkey = c->binary_header.request.keylen;
     uint64_t cas = ntohll(req->message.header.request.cas);
     item_info_holder info;
+    store_info store_info;
+    update_info uinfo;
     memset(&info, 0, sizeof(info));
+    memset(&store_info, 0, sizeof(store_info));
+    store_info.cas = cas;
 
     info.info.nvalue = 1;
 
@@ -5361,14 +5389,20 @@ static void process_bin_delete(conn *c) {
 
     if (ret == ENGINE_SUCCESS) {
         ret = settings.engine.v1->remove(settings.engine.v0, c, key, nkey,
-                                         &cas, c->binary_header.request.vbucket);
+                                         &store_info, c->binary_header.request.vbucket);
     }
 
     /* For some reason the SLAB_INCR tries to access this... */
     switch (ret) {
     case ENGINE_SUCCESS:
-        c->cas = cas;
-        write_bin_response(c, NULL, 0, 0, 0);
+        c->store_info.cas = cas;
+        if (c->supports_durability) {
+            uinfo.vb_uuid = htonll(c->store_info.uuid);
+            uinfo.seqno = htonll(c->store_info.seqno);
+            write_bin_response(c, &uinfo, sizeof(uinfo), 0, sizeof(uinfo));
+        } else {
+            write_bin_response(c, NULL, 0, 0, 0);
+        }
         SLAB_INCR(c, delete_hits, key, nkey);
         break;
     case ENGINE_KEY_EEXISTS:
@@ -5817,7 +5851,7 @@ static int try_read_command(conn *c) {
         c->keylen = c->binary_header.request.keylen;
         c->opaque = c->binary_header.request.opaque;
         /* clear the returned cas value */
-        c->cas = 0;
+        c->store_info.cas = 0;
 
         dispatch_bin_command(c);
 

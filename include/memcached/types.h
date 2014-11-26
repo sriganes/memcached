@@ -88,6 +88,11 @@ extern "C" {
     } item_info;
 
     typedef struct {
+        uint64_t vb_uuid;
+        uint64_t seqno;
+    } update_info;
+
+    typedef struct {
         const char *username;
         const char *config;
     } auth_data_t;

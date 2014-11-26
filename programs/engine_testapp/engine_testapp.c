@@ -213,7 +213,7 @@ static ENGINE_ERROR_CODE mock_get_stats(ENGINE_HANDLE* handle,
 static ENGINE_ERROR_CODE mock_store(ENGINE_HANDLE* handle,
                                     const void *cookie,
                                     item* item,
-                                    uint64_t *cas,
+                                    store_info *store_info,
                                     ENGINE_STORE_OPERATION operation,
                                     uint16_t vbucket) {
     ENGINE_ERROR_CODE ret = ENGINE_SUCCESS;
@@ -226,9 +226,9 @@ static ENGINE_ERROR_CODE mock_store(ENGINE_HANDLE* handle,
     c->nblocks = 0;
     cb_mutex_enter(&c->mutex);
     while (ret == ENGINE_SUCCESS &&
-           (ret = me->the_engine->store((ENGINE_HANDLE*)me->the_engine, c, item, cas,
-                                        operation, vbucket)) == ENGINE_EWOULDBLOCK &&
-           c->handle_ewouldblock)
+           (ret = me->the_engine->store((ENGINE_HANDLE*)me->the_engine, c, item,
+                                         store_info, operation, vbucket)) == 
+                                         ENGINE_EWOULDBLOCK && c->handle_ewouldblock)
     {
         ++c->nblocks;
         cb_cond_wait(&c->cond, &c->mutex);
@@ -252,7 +252,7 @@ static ENGINE_ERROR_CODE mock_arithmetic(ENGINE_HANDLE* handle,
                                          const uint64_t delta,
                                          const uint64_t initial,
                                          const rel_time_t exptime,
-                                         uint64_t *cas,
+                                         store_info *store_info,
                                          uint8_t datatype,
                                          uint64_t *result,
                                          uint16_t vbucket) {
@@ -269,7 +269,7 @@ static ENGINE_ERROR_CODE mock_arithmetic(ENGINE_HANDLE* handle,
            (ret = me->the_engine->arithmetic((ENGINE_HANDLE*)me->the_engine, c, key,
                                              nkey, increment, create,
                                              delta, initial, exptime,
-                                             cas, datatype,
+                                             store_info, datatype,
                                              result, vbucket)) == ENGINE_EWOULDBLOCK &&
            c->handle_ewouldblock)
     {
